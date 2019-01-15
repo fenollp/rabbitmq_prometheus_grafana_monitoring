@@ -1,0 +1,40 @@
+# from https://gist.github.com/Mahito/c35a029796630e895e68358b3b9b8f74
+# uses https://github.com/kbudde/rabbitmq_exporter
+# and https://grafana.com/dashboards/4279
+# http://localhost:9999/metrics
+version: '3.7'
+services:
+  rabbitmq:
+    image: rabbitmq:3.7.8-management
+    hostname: rabbitmq
+    expose: ['9090']
+    ports:
+    - "4369:4369"
+    - "5671:5671"
+    - "5672:5672"
+    - "15672:15672"
+    - "25672:25672"
+
+  rabbitmq_exporter:
+    depends_on: [rabbitmq]
+    image: kbudde/rabbitmq-exporter
+    environment:
+      RABBIT_URL: "http://rabbitmq:15672"
+      RABBIT_USER: "guest"
+      RABBIT_PASSWORD: "guest"
+      PUBLISH_PORT: "9090"
+      OUTPUT_FORMAT: "JSON"
+      LOG_LEVEL: "debug"
+    ports: ['9999:9090']
+
+  prometheus:
+    depends_on: [rabbitmq_exporter]
+    image: quay.io/prometheus/prometheus:v2.6.0
+    volumes:
+    - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports: ['9090:9090']
+
+  grafana:
+    depends_on: [prometheus]
+    image: grafana/grafana:5.4.3
+    ports: ['3000:3000']
